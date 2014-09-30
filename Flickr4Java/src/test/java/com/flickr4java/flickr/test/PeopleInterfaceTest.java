@@ -10,8 +10,9 @@ import com.flickr4java.flickr.FlickrException;
 import com.flickr4java.flickr.groups.Group;
 import com.flickr4java.flickr.groups.GroupList;
 import com.flickr4java.flickr.people.PeopleInterface;
+import com.flickr4java.flickr.people.PersonTag;
+import com.flickr4java.flickr.people.PersonTagList;
 import com.flickr4java.flickr.people.User;
-import com.flickr4java.flickr.people.UserList;
 import com.flickr4java.flickr.photos.Photo;
 import com.flickr4java.flickr.photos.PhotoList;
 
@@ -31,13 +32,13 @@ public class PeopleInterfaceTest extends Flickr4JavaTest {
         User person = iface.findByEmail(testProperties.getEmail());
         assertNotNull(person);
         assertEquals(person.getId(), testProperties.getNsid());
-        assertEquals(person.getUsername(), testProperties.getDisplayname());
+        assertEquals(person.getUsername(), testProperties.getUsername());
     }
 
     @Test
     public void testFindByUsername() throws FlickrException {
         PeopleInterface iface = flickr.getPeopleInterface();
-        User person = iface.findByUsername(testProperties.getDisplayname());
+        User person = iface.findByUsername(testProperties.getUsername());
         assertNotNull(person);
         assertEquals(testProperties.getNsid(), person.getId());
         assertEquals(testProperties.getUsername(), person.getUsername());
@@ -54,11 +55,11 @@ public class PeopleInterfaceTest extends Flickr4JavaTest {
         User person = iface.getInfo(testProperties.getNsid());
         assertNotNull(person);
         assertEquals(testProperties.getNsid(), person.getId());
-        assertEquals(testProperties.getDisplayname(), person.getUsername());
-        assertTrue(person.getMobileurl().startsWith("http://m.flickr.com/photostream.gne"));
-        assertEquals(person.getPhotosurl(), String.format("http://www.flickr.com/photos/%s/", testProperties.getUsername()));
-        assertEquals(person.getProfileurl(), String.format("http://www.flickr.com/people/%s/", testProperties.getUsername()));
-        assertTrue(person.getBuddyIconUrl().startsWith("http://"));
+        assertEquals(testProperties.getDisplayname(), person.getRealName());
+        assertTrue(person.getMobileurl().startsWith("https://m.flickr.com/photostream.gne"));
+        assertEquals(person.getPhotosurl(), String.format("https://www.flickr.com/photos/%s/", testProperties.getUsername()));
+        assertEquals(person.getProfileurl(), String.format("https://www.flickr.com/people/%s/", testProperties.getUsername()));
+        assertTrue(person.getSecureBuddyIconUrl().startsWith("https://"));
     }
 
     @Test
@@ -91,7 +92,7 @@ public class PeopleInterfaceTest extends Flickr4JavaTest {
         PeopleInterface iface = flickr.getPeopleInterface();
         PhotoList<Photo> photos = iface.getPhotos(testProperties.getNsid(), null, null, null, null, null, null, null, null, 15, 1);
         assertNotNull(photos);
-        assertTrue(photos.size() > 1);
+        assertTrue(photos.size() > 0);
     }
 
     @Test
@@ -99,20 +100,22 @@ public class PeopleInterfaceTest extends Flickr4JavaTest {
         PeopleInterface iface = flickr.getPeopleInterface();
         PhotoList<Photo> photos = iface.getPhotosOf(testProperties.getNsid(), null, null, 10, 1);
         assertNotNull(photos);
-        assertTrue(photos.size() > 1);
+        assertTrue(photos.size() > 0);
     }
 
     @Test
     public void testAddDelete() throws FlickrException {
         PeopleInterface iface = flickr.getPeopleInterface();
-        iface.add(testProperties.getPhotoId(), testProperties.getNsid(), null);
-        UserList<User> usrs = iface.getList(testProperties.getPhotoId());
-        assertNotNull(usrs);
-        assertEquals(1, usrs.size());
-        iface.delete(testProperties.getPhotoId(), testProperties.getNsid());
-        usrs = iface.getList(testProperties.getPhotoId());
-        assertNotNull(usrs);
-        assertEquals(0, usrs.size());
+        PersonTagList<PersonTag> usrs = iface.getList(testProperties.getPhotoId());
+        int size = usrs.size();
+        try {
+            iface.add(testProperties.getPhotoId(), testProperties.getNsid(), null);
+        } finally {
+            iface.delete(testProperties.getPhotoId(), testProperties.getNsid());
+            usrs = iface.getList(testProperties.getPhotoId());
+            assertNotNull(usrs);
+            assertEquals(size, usrs.size());
+        }
     }
 
     @Test

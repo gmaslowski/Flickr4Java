@@ -18,8 +18,15 @@ public abstract class Transport {
 
     public static final String SOAP = "SOAP";
 
-    protected static final String API_HOST = "http://api.flickr.com";
+    protected static final String API_HOST = "api.flickr.com";
 
+    /**
+     * Host is different for upload, need to set it from Uploader.java.
+     */
+    public static final String UPLOAD_API_HOST = "up.flickr.com";
+
+    protected static final String DEFAULT_SCHEME = "https";
+    
     private String transportType;
 
     protected Class<?> responseClass;
@@ -28,7 +35,9 @@ public abstract class Transport {
 
     private String host;
 
-    private int port = 80;
+    private int port = 443;
+    
+    private String scheme;
 
     public String getHost() {
         return host;
@@ -62,6 +71,14 @@ public abstract class Transport {
         this.path = path;
     }
 
+    public String getScheme() {
+        return scheme;
+    }
+
+    public void setScheme(String scheme) {
+        this.scheme = scheme;
+    }
+
     /**
      * Invoke an HTTP GET request on a remote host. You must close the InputStream after you are done with.
      * 
@@ -69,11 +86,12 @@ public abstract class Transport {
      *            The request path
      * @param parameters
      *            The parameters (collection of Parameter objects)
+     * @param apiKey
      * @param sharedSecret
      * @return The Response
      * @throws FlickrException
      */
-    public abstract Response get(String path, Map<String, Object> parameters, String sharedSecret) throws FlickrException;
+    public abstract Response get(String path, Map<String, Object> parameters, String apiKey, String sharedSecret) throws FlickrException;
 
     /**
      * Invoke an HTTP POST request on a remote host.
@@ -82,11 +100,12 @@ public abstract class Transport {
      *            The request path
      * @param parameters
      *            The parameters (List of Parameter objects)
+     * @param apiKey
      * @param sharedSecret
      * @return The Response object
      * @throws FlickrException
      */
-    public abstract Response post(String path, Map<String, Object> parameters, String sharedSecret, boolean multipart) throws FlickrException;
+    public abstract Response post(String path, Map<String, Object> parameters, String apiKey, String sharedSecret, boolean multipart) throws FlickrException;
 
     /**
      * Invoke an HTTP POST request on a remote host.
@@ -95,13 +114,14 @@ public abstract class Transport {
      *            The request path
      * @param parameters
      *            The parameters (List of Parameter objects)
+     * @param apiKey
      * @param sharedSecret
      * @return The Response object
      * @throws FlickrException
      */
-    public Response post(String path, Map<String, Object> parameters, String sharedSecret) throws FlickrException {
+    public Response post(String path, Map<String, Object> parameters, String apiKey, String sharedSecret) throws FlickrException {
 
-        return post(path, parameters, sharedSecret, false);
+        return post(path, parameters, apiKey, sharedSecret, false);
     }
 
     /**

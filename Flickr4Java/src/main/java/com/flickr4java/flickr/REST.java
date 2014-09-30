@@ -11,6 +11,7 @@ import com.flickr4java.flickr.util.UrlUtilities;
 
 import org.apache.log4j.Logger;
 import org.scribe.builder.ServiceBuilder;
+
 import org.scribe.builder.api.FlickrApi;
 import org.scribe.model.OAuthRequest;
 import org.scribe.model.Token;
@@ -69,6 +70,7 @@ public class REST extends Transport {
         setTransportType(REST);
         setHost(API_HOST);
         setPath(PATH);
+        setScheme(DEFAULT_SCHEME);
         setResponseClass(RESTResponse.class);
         DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
         try {
@@ -140,9 +142,9 @@ public class REST extends Transport {
      * @return The Response
      */
     @Override
-    public com.flickr4java.flickr.Response get(String path, Map<String, Object> parameters, String sharedSecret) {
+    public com.flickr4java.flickr.Response get(String path, Map<String, Object> parameters, String apiKey, String sharedSecret) {
 
-        OAuthRequest request = new OAuthRequest(Verb.GET, API_HOST + path);
+        OAuthRequest request = new OAuthRequest(Verb.GET, getScheme() + "://" + getHost() + path);
         for (Map.Entry<String, Object> entry : parameters.entrySet()) {
             request.addQuerystringParameter(entry.getKey(), String.valueOf(entry.getValue()));
         }
@@ -153,10 +155,16 @@ public class REST extends Transport {
 
         RequestContext requestContext = RequestContext.getRequestContext();
         Auth auth = requestContext.getAuth();
-        if (auth != null){
+        if (auth != null) {
             Token requestToken = new Token(auth.getToken(), auth.getTokenSecret());
-            OAuthService service = createOAuthService(parameters, sharedSecret);
+            OAuthService service = createOAuthService(parameters, apiKey, sharedSecret);
             service.signRequest(requestToken, request);
+        } else {
+            // For calls that do not require authorization e.g. flickr.people.findByUsername which could be the
+            // first call if the user did not supply the user-id (i.e. nsid).
+            if (!parameters.containsKey(Flickr.API_KEY)) {
+                request.addQuerystringParameter(Flickr.API_KEY, apiKey);
+            }
         }
 
         if (Flickr.debugRequest) {
@@ -172,6 +180,9 @@ public class REST extends Transport {
                 String strXml = scribeResponse.getBody();
                 if (Flickr.debugStream) {
                     logger.debug(strXml);
+                }
+                if (strXml.startsWith("oauth_problem=")) {
+                    throw new FlickrRuntimeException(strXml);
                 }
                 Document document = builder.parse(new InputSource(new StringReader(strXml)));
                 response = (com.flickr4java.flickr.Response) responseClass.newInstance();
@@ -204,7 +215,7 @@ public class REST extends Transport {
     public Response getNonOAuth(String path, Map<String, String> parameters) {
         InputStream in = null;
         try {
-            URL url = UrlUtilities.buildUrl(getHost(), getPort(), path, parameters);
+            URL url = UrlUtilities.buildUrl(getScheme(), getHost(), getPort(), path, parameters);
             if (Flickr.debugRequest) {
                 logger.debug("GET: " + url);
             }
@@ -252,9 +263,9 @@ public class REST extends Transport {
      * @return The Response object
      */
     @Override
-    public com.flickr4java.flickr.Response post(String path, Map<String, Object> parameters, String sharedSecret, boolean multipart) {
+    public com.flickr4java.flickr.Response post(String path, Map<String, Object> parameters, String apiKey, String sharedSecret, boolean multipart) {
 
-        OAuthRequest request = new OAuthRequest(Verb.POST, API_HOST + path);
+        OAuthRequest request = new OAuthRequest(Verb.POST, getScheme() + "://" + getHost() + path);
 
         if (multipart) {
             buildMultipartRequest(parameters, request);
@@ -264,10 +275,10 @@ public class REST extends Transport {
 
         RequestContext requestContext = RequestContext.getRequestContext();
         Auth auth = requestContext.getAuth();
-        if (auth != null){
+        if (auth != null) {
             Token requestToken = new Token(auth.getToken(), auth.getTokenSecret());
-            OAuthService service = createOAuthService(parameters, sharedSecret);
-            service.signRequest(requestToken, request);   
+            OAuthService service = createOAuthService(parameters, apiKey, sharedSecret);
+            service.signRequest(requestToken, request);
         }
 
         if (multipart) {
@@ -318,17 +329,13 @@ public class REST extends Transport {
      * @param sharedSecret
      * @return
      */
-    private OAuthService createOAuthService(Map<String, Object> parameters, String sharedSecret) {
-        OAuthService serviceBuilder;
+    private OAuthService createOAuthService(Map<String, Object> parameters, String apiKey, String sharedSecret) {
+        ServiceBuilder serviceBuilder = new ServiceBuilder().provider(FlickrApi.class).apiKey(apiKey).apiSecret(sharedSecret);
         if (Flickr.debugRequest) {
-            serviceBuilder = new ServiceBuilder().provider(FlickrApi.class).apiKey(String.valueOf(parameters.get(Flickr.API_KEY))).apiSecret(sharedSecret)
-                    .debug().build();
-        } else {
-            serviceBuilder = new ServiceBuilder().provider(FlickrApi.class).apiKey(String.valueOf(parameters.get(Flickr.API_KEY))).apiSecret(sharedSecret)
-                    .build();
+            serviceBuilder = serviceBuilder.debug();
         }
 
-        return serviceBuilder;
+        return serviceBuilder.build();
     }
 
     /**
@@ -351,7 +358,7 @@ public class REST extends Transport {
         request.addHeader("Content-Type", "multipart/form-data; boundary=" + getMultipartBoundary());
         for (Map.Entry<String, Object> entry : parameters.entrySet()) {
             String key = entry.getKey();
-            if (!key.equals("photo")) {
+            if (!key.equals("photo") && !key.equals("filename") &&  !key.equals("filemimetype")) {
                 request.addQuerystringParameter(key, String.valueOf(entry.getValue()));
             }
         }
@@ -382,10 +389,19 @@ public class REST extends Transport {
 
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         try {
+        	String filename = (String) parameters.get("filename");
+        	if(filename == null)
+        		filename = "image.jpg";
+
+        	String fileMimeType = (String) parameters.get("filemimetype");
+        	if(fileMimeType == null)
+        		fileMimeType = "image/jpeg";
+        	
             buffer.write(("--" + boundary + "\r\n").getBytes(CHARSET_NAME));
             for (Entry<String, Object> entry : parameters.entrySet()) {
                 String key = entry.getKey();
-                writeParam(key, entry.getValue(), buffer, boundary);
+                if(!key.equals("filename") && !key.equals("filemimetype"))
+                	writeParam(key, entry.getValue(), buffer, boundary, filename, fileMimeType);
             }
         } catch (IOException e) {
             throw new FlickrRuntimeException(e);
@@ -398,21 +414,21 @@ public class REST extends Transport {
         return buffer.toByteArray();
     }
 
-    private void writeParam(String name, Object value, ByteArrayOutputStream buffer, String boundary) throws IOException {
+    private void writeParam(String name, Object value, ByteArrayOutputStream buffer, String boundary, String filename, String fileMimeType) throws IOException {
         if (value instanceof InputStream) {
-            buffer.write(("Content-Disposition: form-data; name=\"" + name + "\"; filename=\"image.jpg\";\r\n").getBytes(CHARSET_NAME));
-            buffer.write(("Content-Type: image/jpeg" + "\r\n\r\n").getBytes(CHARSET_NAME));
+            buffer.write(("Content-Disposition: form-data; name=\"" + name + "\"; filename=\"" + filename + "\";\r\n").getBytes(CHARSET_NAME));
+            buffer.write(("Content-Type: " + fileMimeType + "\r\n\r\n").getBytes(CHARSET_NAME));
             InputStream in = (InputStream) value;
             byte[] buf = new byte[512];
 
             int res = -1;
             while ((res = in.read(buf)) != -1) {
-                buffer.write(buf,0,res);
+                buffer.write(buf, 0, res);
             }
             buffer.write(("\r\n" + "--" + boundary + "\r\n").getBytes(CHARSET_NAME));
         } else if (value instanceof byte[]) {
-            buffer.write(("Content-Disposition: form-data; name=\"" + name + "\"; filename=\"image.jpg\";\r\n").getBytes(CHARSET_NAME));
-            buffer.write(("Content-Type: image/jpeg" + "\r\n\r\n").getBytes(CHARSET_NAME));
+            buffer.write(("Content-Disposition: form-data; name=\"" + name + "\"; filename=\"" + filename + "\";\r\n").getBytes(CHARSET_NAME));
+            buffer.write(("Content-Type: " + fileMimeType + "\r\n\r\n").getBytes(CHARSET_NAME));
             buffer.write((byte[]) value);
             buffer.write(("\r\n" + "--" + boundary + "\r\n").getBytes(CHARSET_NAME));
         } else {

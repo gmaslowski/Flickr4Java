@@ -46,13 +46,14 @@ public class AuthExample {
         Token token = authInterface.getRequestToken();
         System.out.println("token: " + token);
 
-        String url = authInterface.getAuthorizationUrl(token, Permission.READ);
+        String url = authInterface.getAuthorizationUrl(token, Permission.DELETE);
         System.out.println("Follow this URL to authorise yourself on Flickr");
         System.out.println(url);
         System.out.println("Paste in the token it gives you:");
         System.out.print(">>");
 
         String tokenKey = scanner.nextLine();
+        scanner.close();
 
         Token requestToken = authInterface.getAccessToken(token, new Verifier(tokenKey));
         System.out.println("Authentication success");
@@ -61,6 +62,7 @@ public class AuthExample {
 
         // This token can be used until the user revokes it.
         System.out.println("Token: " + requestToken.getToken());
+        System.out.println("Secret: " + requestToken.getSecret());
         System.out.println("nsid: " + auth.getUser().getId());
         System.out.println("Realname: " + auth.getUser().getRealName());
         System.out.println("Username: " + auth.getUser().getUsername());

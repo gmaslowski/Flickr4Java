@@ -4,7 +4,6 @@
 
 package com.flickr4java.flickr.uploader;
 
-import com.flickr4java.flickr.Flickr;
 import com.flickr4java.flickr.FlickrException;
 import com.flickr4java.flickr.FlickrRuntimeException;
 import com.flickr4java.flickr.REST;
@@ -42,7 +41,6 @@ public class Uploader {
      * 
      */
     private static final String SERVICES_REPLACE_PATH = "/services/replace/";
-
     /**
      * 
      */
@@ -63,7 +61,7 @@ public class Uploader {
     public Uploader(String apiKey, String sharedSecret) {
         this.apiKey = apiKey;
         this.sharedSecret = sharedSecret;
-        this.transport = new REST();
+        this.transport = new REST(Transport.UPLOAD_API_HOST);
         this.transport.setResponseClass(UploaderResponse.class);
     }
 
@@ -192,7 +190,7 @@ public class Uploader {
      * @throws FlickrException
      */
     private UploaderResponse postPhoto(Map<String, Object> parameters, String path) throws FlickrException {
-        UploaderResponse response = (UploaderResponse) transport.post(path, parameters, sharedSecret, true);
+        UploaderResponse response = (UploaderResponse) transport.post(path, parameters, apiKey, sharedSecret, true);
         if (response.isError()) {
             throw new FlickrException(response.getErrorCode(), response.getErrorMessage());
         }
@@ -224,8 +222,17 @@ public class Uploader {
     private Map<String, Object> setUploadParameters(UploadMetaData metaData) {
         Map<String, Object> parameters = new TreeMap<String, Object>();
 
-        parameters.put(Flickr.API_KEY, apiKey);
+        String filename = metaData.getFilename();
+        if(filename == null || filename.equals(""))
+        	filename = "image.jpg";  // Will NOT work for videos, filename must be passed.
+        parameters.put("filename", filename);
 
+        String fileMimeType = metaData.getFilemimetype();
+        if(fileMimeType == null || fileMimeType.equals(""))
+        	fileMimeType = "image/jpeg";
+        
+        parameters.put("filemimetype", fileMimeType);
+      
         String title = metaData.getTitle();
         if (title != null) {
             parameters.put("title", title);
@@ -270,7 +277,6 @@ public class Uploader {
     private Map<String, Object> setReplaceParameters(String flickrId, boolean async) {
         Map<String, Object> parameters = new TreeMap<String, Object>();
 
-        parameters.put(Flickr.API_KEY, apiKey);
         parameters.put("async", async ? "1" : "0");
         parameters.put("photo_id", flickrId);
 
@@ -278,9 +284,8 @@ public class Uploader {
     }
 
     /**
-     * Return the {@link REST} impl used by this instance so that properties can
-     * be set on it, eg {@link REST#setConnectTimeoutMs(Integer)}.  TODO: should
-     * return a wrapper that only allows "safe" properties to be set.
+     * Return the {@link REST} impl used by this instance so that properties can be set on it, eg {@link REST#setConnectTimeoutMs(Integer)}. TODO: should return
+     * a wrapper that only allows "safe" properties to be set.
      * 
      * @return The {@link REST} transport used by this instance
      */

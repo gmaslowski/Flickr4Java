@@ -55,6 +55,8 @@ public class PeopleInterface {
     public static final String METHOD_GET_PHOTOS_OF = "flickr.people.getPhotosOf";
 
     public static final String METHOD_GET_GROUPS = "flickr.people.getGroups";
+    
+    public static final String METHOD_GET_LIMITS = "flickr.people.getLimits";
 
     private final String apiKey;
 
@@ -81,11 +83,10 @@ public class PeopleInterface {
     public User findByEmail(String email) throws FlickrException {
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("method", METHOD_FIND_BY_EMAIL);
-        parameters.put(Flickr.API_KEY, apiKey);
 
         parameters.put("find_email", email);
 
-        Response response = transportAPI.get(transportAPI.getPath(), parameters, sharedSecret);
+        Response response = transportAPI.get(transportAPI.getPath(), parameters, apiKey, sharedSecret);
         if (response.isError()) {
             throw new FlickrException(response.getErrorCode(), response.getErrorMessage());
         }
@@ -109,11 +110,10 @@ public class PeopleInterface {
     public User findByUsername(String username) throws FlickrException {
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("method", METHOD_FIND_BY_USERNAME);
-        parameters.put(Flickr.API_KEY, apiKey);
-
+        
         parameters.put("username", username);
 
-        Response response = transportAPI.get(transportAPI.getPath(), parameters, sharedSecret);
+        Response response = transportAPI.get(transportAPI.getPath(), parameters, apiKey, sharedSecret);
         if (response.isError()) {
             throw new FlickrException(response.getErrorCode(), response.getErrorMessage());
         }
@@ -137,11 +137,10 @@ public class PeopleInterface {
     public User getInfo(String userId) throws FlickrException {
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("method", METHOD_GET_INFO);
-        parameters.put(Flickr.API_KEY, apiKey);
-
+        
         parameters.put("user_id", userId);
 
-        Response response = transportAPI.get(transportAPI.getPath(), parameters, sharedSecret);
+        Response response = transportAPI.get(transportAPI.getPath(), parameters,  apiKey,  sharedSecret);
         if (response.isError()) {
             throw new FlickrException(response.getErrorCode(), response.getErrorMessage());
         }
@@ -169,6 +168,15 @@ public class PeopleInterface {
         user.setPhotosFirstDate(XMLUtilities.getChildValue(photosElement, "firstdate"));
         user.setPhotosFirstDateTaken(XMLUtilities.getChildValue(photosElement, "firstdatetaken"));
         user.setPhotosCount(XMLUtilities.getChildValue(photosElement, "count"));
+        
+        NodeList tzNodes = userElement.getElementsByTagName("timezone");
+        for (int i = 0; i < tzNodes.getLength(); i++) {
+            Element tzElement = (Element) tzNodes.item(i);
+            TimeZone tz = new TimeZone();
+            user.setTimeZone(tz);
+            tz.setLabel(tzElement.getAttribute("label"));
+            tz.setOffset(tzElement.getAttribute("offset"));
+        }
 
         return user;
     }
@@ -191,11 +199,10 @@ public class PeopleInterface {
 
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("method", METHOD_GET_PUBLIC_GROUPS);
-        parameters.put(Flickr.API_KEY, apiKey);
 
         parameters.put("user_id", userId);
 
-        Response response = transportAPI.get(transportAPI.getPath(), parameters, sharedSecret);
+        Response response = transportAPI.get(transportAPI.getPath(), parameters,  apiKey, sharedSecret);
         if (response.isError()) {
             throw new FlickrException(response.getErrorCode(), response.getErrorMessage());
         }
@@ -239,7 +246,6 @@ public class PeopleInterface {
 
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("method", METHOD_GET_PUBLIC_PHOTOS);
-        parameters.put(Flickr.API_KEY, apiKey);
 
         parameters.put("user_id", userId);
 
@@ -254,7 +260,7 @@ public class PeopleInterface {
             parameters.put(Extras.KEY_EXTRAS, StringUtilities.join(extras, ","));
         }
 
-        Response response = transportAPI.get(transportAPI.getPath(), parameters, sharedSecret);
+        Response response = transportAPI.get(transportAPI.getPath(), parameters,  apiKey, sharedSecret);
         if (response.isError()) {
             throw new FlickrException(response.getErrorCode(), response.getErrorMessage());
         }
@@ -283,9 +289,8 @@ public class PeopleInterface {
     public User getUploadStatus() throws FlickrException {
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("method", METHOD_GET_UPLOAD_STATUS);
-        parameters.put(Flickr.API_KEY, apiKey);
 
-        Response response = transportAPI.get(transportAPI.getPath(), parameters, sharedSecret);
+        Response response = transportAPI.get(transportAPI.getPath(), parameters,  apiKey, sharedSecret);
         if (response.isError()) {
             throw new FlickrException(response.getErrorCode(), response.getErrorMessage());
         }
@@ -298,9 +303,22 @@ public class PeopleInterface {
         Element bandwidthElement = XMLUtilities.getChild(userElement, "bandwidth");
         user.setBandwidthMax(bandwidthElement.getAttribute("max"));
         user.setBandwidthUsed(bandwidthElement.getAttribute("used"));
+        user.setIsBandwidthUnlimited("1".equals(bandwidthElement.getAttribute("unlimited")));
 
         Element filesizeElement = XMLUtilities.getChild(userElement, "filesize");
         user.setFilesizeMax(filesizeElement.getAttribute("max"));
+        
+        Element setsElement = XMLUtilities.getChild(userElement, "sets");
+        user.setSetsCreated(setsElement.getAttribute("created"));
+        user.setSetsRemaining(setsElement.getAttribute("remaining"));
+        
+        Element videosElement = XMLUtilities.getChild(userElement, "videos");
+        user.setVideosUploaded(videosElement.getAttribute("uploaded"));
+        user.setVideosRemaining(videosElement.getAttribute("remaining"));
+        
+        Element videoSizeElement = XMLUtilities.getChild(userElement, "videosize");
+        user.setVideoSizeMax(videoSizeElement.getAttribute("maxbytes"));
+
 
         return user;
     }
@@ -310,7 +328,6 @@ public class PeopleInterface {
 
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("method", METHOD_GET_PHOTOS);
-        parameters.put(Flickr.API_KEY, apiKey);
 
         parameters.put("user_id", userId);
         if (safeSearch != null) {
@@ -344,7 +361,7 @@ public class PeopleInterface {
             parameters.put(Extras.KEY_EXTRAS, StringUtilities.join(extras, ","));
         }
 
-        Response response = transportAPI.get(transportAPI.getPath(), parameters, sharedSecret);
+        Response response = transportAPI.get(transportAPI.getPath(), parameters,  apiKey, sharedSecret);
         if (response.isError()) {
             throw new FlickrException(response.getErrorCode(), response.getErrorMessage());
         }
@@ -368,7 +385,6 @@ public class PeopleInterface {
 
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("method", METHOD_GET_PHOTOS_OF);
-        parameters.put(Flickr.API_KEY, apiKey);
 
         parameters.put("user_id", userId);
         if (ownerId != null) {
@@ -384,7 +400,7 @@ public class PeopleInterface {
             parameters.put("page", "" + page);
         }
 
-        Response response = transportAPI.get(transportAPI.getPath(), parameters, sharedSecret);
+        Response response = transportAPI.get(transportAPI.getPath(), parameters,  apiKey,  sharedSecret);
         if (response.isError()) {
             throw new FlickrException(response.getErrorCode(), response.getErrorMessage());
         }
@@ -404,7 +420,7 @@ public class PeopleInterface {
             User owner = new User();
             owner.setId(photoElement.getAttribute("owner"));
             photo.setOwner(owner);
-            photo.setUrl("http://flickr.com/photos/" + owner.getId() + "/" + photo.getId());
+            photo.setUrl("https://flickr.com/photos/" + owner.getId() + "/" + photo.getId());
             photo.setServer(photoElement.getAttribute("server"));
             photo.setTitle(photoElement.getAttribute("title"));
             photo.setPublicFlag("1".equals(photoElement.getAttribute("ispublic")));
@@ -474,11 +490,12 @@ public class PeopleInterface {
     }
 
     /**
+     * Get a list of people in a given photo.
      *
      * @param photoId
      * @throws FlickrException
      */
-    public UserList<User> getList(String photoId) throws FlickrException {
+    public PersonTagList<PersonTag> getList(String photoId) throws FlickrException {
 
         // Delegating this to photos.people.PeopleInterface - Naming standard would be to use PeopleInterface but having 2 the same name can cause issues
         com.flickr4java.flickr.photos.people.PeopleInterface pi = new com.flickr4java.flickr.photos.people.PeopleInterface(apiKey, sharedSecret, transportAPI);
@@ -495,10 +512,9 @@ public class PeopleInterface {
         GroupList<Group> groupList = new GroupList<Group>();
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("method", METHOD_GET_GROUPS);
-        parameters.put(Flickr.API_KEY, apiKey);
         parameters.put("user_id", userId);
 
-        Response response = transportAPI.get(transportAPI.getPath(), parameters, sharedSecret);
+        Response response = transportAPI.get(transportAPI.getPath(), parameters,  apiKey, sharedSecret);
         if (response.isError()) {
             throw new FlickrException(response.getErrorCode(), response.getErrorMessage());
         }
@@ -520,6 +536,42 @@ public class PeopleInterface {
         }
         return groupList;
 
+    }
+    
+    /**
+     * Get's the user's current upload limits, User object only contains user_id
+     * 
+     * @return Media Limits
+     */
+    
+    public User getLimits() throws FlickrException {
+        Map<String, Object> parameters = new HashMap<String, Object>();
+        parameters.put("method", METHOD_GET_LIMITS);
+
+        Response response = transportAPI.get(transportAPI.getPath(), parameters,  apiKey, sharedSecret);
+        if (response.isError()) {
+            throw new FlickrException(response.getErrorCode(), response.getErrorMessage());
+        }
+        Element userElement = response.getPayload();
+        User user = new User();
+        user.setId(userElement.getAttribute("nsid"));
+        NodeList photoNodes = userElement.getElementsByTagName("photos");
+        for (int i = 0; i < photoNodes.getLength(); i++) {
+            Element plElement = (Element) photoNodes.item(i);
+            PhotoLimits pl = new PhotoLimits();
+            user.setPhotoLimits(pl);
+            pl.setMaxDisplay(plElement.getAttribute("maxdisplaypx"));
+            pl.setMaxUpload(plElement.getAttribute("maxupload"));
+        }
+        NodeList videoNodes = userElement.getElementsByTagName("videos");
+        for (int i = 0; i < videoNodes.getLength(); i++) {
+            Element vlElement = (Element) videoNodes.item(i);
+            VideoLimits vl = new VideoLimits();
+            user.setPhotoLimits(vl);
+            vl.setMaxDuration(vlElement.getAttribute("maxduration"));
+            vl.setMaxUpload(vlElement.getAttribute("maxupload"));
+        }
+        return user;
     }
 
 }

@@ -3,22 +3,11 @@
  */
 package com.flickr4java.flickr.groups.pools;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
-
-import com.flickr4java.flickr.Flickr;
 import com.flickr4java.flickr.FlickrException;
 import com.flickr4java.flickr.Response;
 import com.flickr4java.flickr.Transport;
 import com.flickr4java.flickr.groups.Group;
+import com.flickr4java.flickr.groups.GroupList;
 import com.flickr4java.flickr.photos.Extras;
 import com.flickr4java.flickr.photos.Photo;
 import com.flickr4java.flickr.photos.PhotoContext;
@@ -26,11 +15,23 @@ import com.flickr4java.flickr.photos.PhotoList;
 import com.flickr4java.flickr.photos.PhotoUtils;
 import com.flickr4java.flickr.util.StringUtilities;
 
+import org.apache.log4j.Logger;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+
 /**
  * @author Anthony Eden
  * @version $Id: PoolsInterface.java,v 1.16 2011/07/02 19:00:59 x-mago Exp $
  */
 public class PoolsInterface {
+
+    private static Logger _log = Logger.getLogger(PoolsInterface.class);
 
     public static final String METHOD_ADD = "flickr.groups.pools.add";
 
@@ -42,11 +43,11 @@ public class PoolsInterface {
 
     public static final String METHOD_REMOVE = "flickr.groups.pools.remove";
 
-    private String apiKey;
+    private final String apiKey;
 
-    private String sharedSecret;
+    private final String sharedSecret;
 
-    private Transport transport;
+    private final Transport transport;
 
     public PoolsInterface(String apiKey, String sharedSecret, Transport transport) {
         this.apiKey = apiKey;
@@ -65,12 +66,11 @@ public class PoolsInterface {
     public void add(String photoId, String groupId) throws FlickrException {
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("method", METHOD_ADD);
-        parameters.put(Flickr.API_KEY, apiKey);
 
         parameters.put("photo_id", photoId);
         parameters.put("group_id", groupId);
 
-        Response response = transport.post(transport.getPath(), parameters, sharedSecret);
+        Response response = transport.post(transport.getPath(), parameters, apiKey, sharedSecret);
         if (response.isError()) {
             throw new FlickrException(response.getErrorCode(), response.getErrorMessage());
         }
@@ -91,12 +91,11 @@ public class PoolsInterface {
     public PhotoContext getContext(String photoId, String groupId) throws FlickrException {
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("method", METHOD_GET_CONTEXT);
-        parameters.put(Flickr.API_KEY, apiKey);
 
         parameters.put("photo_id", photoId);
         parameters.put("group_id", groupId);
 
-        Response response = transport.get(transport.getPath(), parameters, sharedSecret);
+        Response response = transport.get(transport.getPath(), parameters, apiKey, sharedSecret);
         if (response.isError()) {
             throw new FlickrException(response.getErrorCode(), response.getErrorMessage());
         }
@@ -112,8 +111,8 @@ public class PoolsInterface {
                 Photo photo = new Photo();
                 photo.setId(element.getAttribute("id"));
                 photoContext.setNextPhoto(photo);
-            } else {
-                System.err.println("unsupported element name: " + elementName);
+            } else if (!elementName.equals("count")) {
+                _log.warn("unsupported element name: " + elementName);
             }
         }
         return photoContext;
@@ -126,17 +125,20 @@ public class PoolsInterface {
      * @throws FlickrException
      */
     public Collection<Group> getGroups() throws FlickrException {
-        List<Group> groups = new ArrayList<Group>();
+        GroupList<Group> groups = new GroupList<Group>();
 
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("method", METHOD_GET_GROUPS);
-        parameters.put(Flickr.API_KEY, apiKey);
 
-        Response response = transport.get(transport.getPath(), parameters, sharedSecret);
+        Response response = transport.get(transport.getPath(), parameters, apiKey, sharedSecret);
         if (response.isError()) {
             throw new FlickrException(response.getErrorCode(), response.getErrorMessage());
         }
         Element groupsElement = response.getPayload();
+        groups.setPage(groupsElement.getAttribute("page"));
+        groups.setPages(groupsElement.getAttribute("pages"));
+        groups.setPerPage(groupsElement.getAttribute("perpage"));
+        groups.setTotal(groupsElement.getAttribute("total"));
         NodeList groupNodes = groupsElement.getElementsByTagName("group");
         for (int i = 0; i < groupNodes.getLength(); i++) {
             Element groupElement = (Element) groupNodes.item(i);
@@ -145,6 +147,9 @@ public class PoolsInterface {
             group.setName(groupElement.getAttribute("name"));
             group.setAdmin("1".equals(groupElement.getAttribute("admin")));
             group.setPrivacy(groupElement.getAttribute("privacy"));
+            group.setIconServer(groupElement.getAttribute("iconserver"));
+            group.setIconFarm(groupElement.getAttribute("iconfarm"));
+            group.setPhotoCount(groupElement.getAttribute("photos"));
             groups.add(group);
         }
         return groups;
@@ -158,6 +163,8 @@ public class PoolsInterface {
      * @see com.flickr4java.flickr.photos.Extras
      * @param groupId
      *            The group ID
+     * @param userId
+     *            The user ID (may be null)
      * @param tags
      *            The optional tags (may be null)
      * @param extras
@@ -169,14 +176,16 @@ public class PoolsInterface {
      * @return A Collection of Photo objects
      * @throws FlickrException
      */
-    public PhotoList<Photo> getPhotos(String groupId, String[] tags, Set<String> extras, int perPage, int page) throws FlickrException {
+    public PhotoList<Photo> getPhotos(String groupId, String userId, String[] tags, Set<String> extras, int perPage, int page) throws FlickrException {
         PhotoList<Photo> photos = new PhotoList<Photo>();
 
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("method", METHOD_GET_PHOTOS);
-        parameters.put(Flickr.API_KEY, apiKey);
 
         parameters.put("group_id", groupId);
+        if (userId != null) {
+            parameters.put("user_id", userId);
+        }
         if (tags != null) {
             parameters.put("tags", StringUtilities.join(tags, " "));
         }
@@ -199,7 +208,7 @@ public class PoolsInterface {
             parameters.put(Extras.KEY_EXTRAS, sb.toString());
         }
 
-        Response response = transport.get(transport.getPath(), parameters, sharedSecret);
+        Response response = transport.get(transport.getPath(), parameters, apiKey, sharedSecret);
         if (response.isError()) {
             throw new FlickrException(response.getErrorCode(), response.getErrorMessage());
         }
@@ -216,6 +225,29 @@ public class PoolsInterface {
         }
 
         return photos;
+    }
+
+    /**
+     * Convenience/Compatibility method.
+     * 
+     * This method does not require authentication.
+     * 
+     * @see com.flickr4java.flickr.photos.Extras
+     * @param groupId
+     *            The group ID
+     * @param tags
+     *            The optional tags (may be null)
+     * @param extras
+     *            Set of extra-attributes to include (may be null)
+     * @param perPage
+     *            The number of photos per page (0 to ignore)
+     * @param page
+     *            The page offset (0 to ignore)
+     * @return A Collection of Photo objects
+     * @throws FlickrException
+     */
+    public PhotoList<Photo> getPhotos(String groupId, String[] tags, Set<String> extras, int perPage, int page) throws FlickrException {
+        return getPhotos(groupId, null, tags, extras, perPage, page);
     }
 
     /**
@@ -250,12 +282,11 @@ public class PoolsInterface {
     public void remove(String photoId, String groupId) throws FlickrException {
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("method", METHOD_REMOVE);
-        parameters.put(Flickr.API_KEY, apiKey);
 
         parameters.put("photo_id", photoId);
         parameters.put("group_id", groupId);
 
-        Response response = transport.post(transport.getPath(), parameters, sharedSecret);
+        Response response = transport.post(transport.getPath(), parameters, apiKey, sharedSecret);
         if (response.isError()) {
             throw new FlickrException(response.getErrorCode(), response.getErrorMessage());
         }

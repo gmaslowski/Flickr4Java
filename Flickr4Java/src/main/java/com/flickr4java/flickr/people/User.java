@@ -43,6 +43,8 @@ public class User implements Serializable, BuddyIconable {
 
     private String location;
 
+    private TimeZone timeZone;
+    
     private Date photosFirstDate;
 
     private Date photosFirstDateTaken;
@@ -58,6 +60,18 @@ public class User implements Serializable, BuddyIconable {
     private long bandwidthMax;
 
     private long bandwidthUsed;
+    
+    private Boolean bandwidthUnlimited;
+    
+    private String setsCreated;
+    
+    private String setsRemaining;
+    
+    private String videosUploaded;
+    
+    private String videosRemaining;
+    
+    private String videoSizeMax;
 
     private long filesizeMax;
 
@@ -76,6 +90,11 @@ public class User implements Serializable, BuddyIconable {
     private boolean revFamily;
 
     private String pathAlias;
+    
+    private PhotoLimits photoLimits;
+    
+    private VideoLimits videoLimits;
+    
 
     public User() {
     }
@@ -148,8 +167,14 @@ public class User implements Serializable, BuddyIconable {
         this.realName = realName;
     }
 
-    public String getLocation() {
-        return location;
+    
+    public TimeZone  getTimeZone() {
+        return timeZone;
+    }
+    
+    
+    public TimeZone setTimeZone(TimeZone string) {
+        return this.timeZone = string;
     }
 
     /**
@@ -159,10 +184,29 @@ public class User implements Serializable, BuddyIconable {
      * 
      * @see <a href="http://flickr.com/services/api/misc.buddyicons.html">Flickr Documentation</a>
      * @return The BuddyIconUrl
+     * @deprecated use {@link #getSecureBuddyIconUrl() }
      */
+    @Deprecated
     public String getBuddyIconUrl() {
         return UrlUtilities.createBuddyIconUrl(iconFarm, iconServer, id);
     }
+    
+    public String getLocation() {
+        return location;
+    }
+
+    /**
+     * Construct the BuddyIconUrl using {@code https} scheme.
+     * <p>
+     * If none available, return the <a href="https://www.flickr.com/images/buddyicon.jpg">default</a>, or an URL assembled from farm, iconserver and nsid.
+     * 
+     * @see <a href="http://flickr.com/services/api/misc.buddyicons.html">Flickr Documentation</a>
+     * @return The BuddyIconUrl
+     */
+    public String getSecureBuddyIconUrl() {
+        return UrlUtilities.createSecureBuddyIconUrl(iconFarm, iconServer, id);
+    }
+
 
     public void setLocation(String location) {
         this.location = location;
@@ -417,4 +461,74 @@ public class User implements Serializable, BuddyIconable {
     public void setPathAlias(String pathAlias) {
         this.pathAlias = pathAlias;
     }
+    /**
+     * @return PhotoLimits class instance
+     */
+    public PhotoLimits getPhotoLimits() {
+        return photoLimits;
+    }
+
+    public void setPhotoLimits(PhotoLimits photoLimits) {
+        this.photoLimits = photoLimits;
+    }
+    /**
+     * @return VideoLimits class instance
+     */
+    public VideoLimits getVideoLimits() {
+        return videoLimits;
+    }
+
+    public void setPhotoLimits(VideoLimits videoLimits) {
+        this.videoLimits = videoLimits;
+    }
+    public Boolean isBandwidthUnlimited(){
+    	return bandwidthUnlimited;
+    }
+    public void setIsBandwidthUnlimited(Boolean bandwidthUnlimited){
+    	this.bandwidthUnlimited = bandwidthUnlimited; 
+    }
+
+	public String getSetsCreated() {
+		return setsCreated;
+	}
+
+	public void setSetsCreated(String setsCreated) {
+		this.setsCreated = setsCreated;
+	}
+
+	public String getSetsRemaining() {
+		return setsRemaining;
+	}
+
+	public void setSetsRemaining(String setsRemaining) {
+		this.setsRemaining = setsRemaining;
+	}
+
+	public String getVideosUploaded() {
+		return videosUploaded;
+	}
+
+	public void setVideosUploaded(String videosUploaded) {
+		this.videosUploaded = videosUploaded;
+	}
+
+	public String getVideosRemaining() {
+		return videosRemaining;
+	}
+
+	public void setVideosRemaining(String videosRemaining) {
+		this.videosRemaining = videosRemaining;
+	}
+
+	public String getVideosSizeMax() {
+		return videoSizeMax;
+	}
+
+	public void setVideoSizeMax(String videoSizeMax) {
+		this.videoSizeMax = videoSizeMax;
+	}
+
+	
+
+	
 }

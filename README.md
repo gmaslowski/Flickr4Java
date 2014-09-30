@@ -38,8 +38,9 @@ An API key is required to use this API.  You can [request one on Flickr](http://
 
     <dependency>
       <groupId>com.flickr4java</groupId>
-      <artifactId>flickr</artifactId>
-      <version>2.5</version>
+      <artifactId>flickr4java</artifactId>
+      <version>2.11</version>
     </dependency>
 
-It's hosted on [JCenter](https://bintray.com/bintray/jcenter), you may need to [download their settings.xml](https://bintray.com/repo/downloadMavenRepoSettingsFile/downloadSettings?repoPath=%2Fbintray%2Fjcenter) to get access to their repo.
+Flickr4Java is now available on Maven Central so the above settings should be all you need (it used to only be available on [JCenter](https://bintray.com/bintray/jcenter).
+

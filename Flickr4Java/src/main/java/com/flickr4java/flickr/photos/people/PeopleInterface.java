@@ -3,19 +3,18 @@
  */
 package com.flickr4java.flickr.photos.people;
 
-import java.awt.Rectangle;
-import java.util.HashMap;
-import java.util.Map;
+import com.flickr4java.flickr.FlickrException;
+import com.flickr4java.flickr.Response;
+import com.flickr4java.flickr.Transport;
+import com.flickr4java.flickr.people.PersonTag;
+import com.flickr4java.flickr.people.PersonTagList;
 
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
-import com.flickr4java.flickr.Flickr;
-import com.flickr4java.flickr.FlickrException;
-import com.flickr4java.flickr.Response;
-import com.flickr4java.flickr.Transport;
-import com.flickr4java.flickr.people.User;
-import com.flickr4java.flickr.people.UserList;
+import java.awt.Rectangle;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author acaplan
@@ -56,7 +55,6 @@ public class PeopleInterface {
     public void add(String photoId, String userId, Rectangle bounds) throws FlickrException {
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("method", METHOD_ADD);
-        parameters.put(Flickr.API_KEY, apiKey);
 
         parameters.put("photo_id", photoId);
         parameters.put("user_id", userId);
@@ -67,7 +65,7 @@ public class PeopleInterface {
             parameters.put("person_h", bounds.height);
         }
 
-        Response response = transportAPI.get(transportAPI.getPath(), parameters, sharedSecret);
+        Response response = transportAPI.get(transportAPI.getPath(), parameters, apiKey, sharedSecret);
         if (response.isError()) {
             throw new FlickrException(response.getErrorCode(), response.getErrorMessage());
         }
@@ -83,12 +81,11 @@ public class PeopleInterface {
     public void delete(String photoId, String userId) throws FlickrException {
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("method", METHOD_DELETE);
-        parameters.put(Flickr.API_KEY, apiKey);
 
         parameters.put("photo_id", photoId);
         parameters.put("user_id", userId);
 
-        Response response = transportAPI.get(transportAPI.getPath(), parameters, sharedSecret);
+        Response response = transportAPI.get(transportAPI.getPath(), parameters, apiKey, sharedSecret);
         if (response.isError()) {
             throw new FlickrException(response.getErrorCode(), response.getErrorMessage());
         }
@@ -104,12 +101,11 @@ public class PeopleInterface {
     public void deleteCoords(String photoId, String userId) throws FlickrException {
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("method", METHOD_DELETE_COORDS);
-        parameters.put(Flickr.API_KEY, apiKey);
 
         parameters.put("photo_id", photoId);
         parameters.put("user_id", userId);
 
-        Response response = transportAPI.get(transportAPI.getPath(), parameters, sharedSecret);
+        Response response = transportAPI.get(transportAPI.getPath(), parameters, apiKey, sharedSecret);
         if (response.isError()) {
             throw new FlickrException(response.getErrorCode(), response.getErrorMessage());
         }
@@ -126,7 +122,6 @@ public class PeopleInterface {
     public void editCoords(String photoId, String userId, Rectangle bounds) throws FlickrException {
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("method", METHOD_EDIT_COORDS);
-        parameters.put(Flickr.API_KEY, apiKey);
 
         parameters.put("photo_id", photoId);
         parameters.put("user_id", userId);
@@ -135,40 +130,49 @@ public class PeopleInterface {
         parameters.put("person_w", bounds.width);
         parameters.put("person_h", bounds.height);
 
-        Response response = transportAPI.get(transportAPI.getPath(), parameters, sharedSecret);
+        Response response = transportAPI.get(transportAPI.getPath(), parameters, apiKey, sharedSecret);
         if (response.isError()) {
             throw new FlickrException(response.getErrorCode(), response.getErrorMessage());
         }
     }
 
-    public UserList<User> getList(String photoId) throws FlickrException {
+    	public PersonTagList<PersonTag> getList(String photoId) throws FlickrException{
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("method", METHOD_GET_LIST);
-        parameters.put(Flickr.API_KEY, apiKey);
 
         parameters.put("photo_id", photoId);
 
-        Response response = transportAPI.get(transportAPI.getPath(), parameters, sharedSecret);
+        Response response = transportAPI.get(transportAPI.getPath(), parameters, apiKey, sharedSecret);
         if (response.isError()) {
             throw new FlickrException(response.getErrorCode(), response.getErrorMessage());
         }
 
         // @TODO this isn't a complete list ...
         Element usersElement = response.getPayload();
-        UserList<User> ul = new UserList<User>();
+        PersonTagList<PersonTag> pt = new PersonTagList<PersonTag>();
+        pt.setTotal(Integer.parseInt(usersElement.getAttribute("total")));
+        pt.setHeight(Integer.parseInt(usersElement.getAttribute("photo_height")));
+        pt.setWidth(Integer.parseInt(usersElement.getAttribute("photo_width")));
         NodeList usernodes = usersElement.getElementsByTagName("person");
         for (int i = 0; i < usernodes.getLength(); i++) {
             Element userElement = (Element) usernodes.item(i);
 
-            User user = new User();
+            PersonTag user = new PersonTag();
             user.setId(userElement.getAttribute("nsid"));
             user.setUsername(userElement.getAttribute("username"));
-            user.setIconFarm(userElement.getAttribute("iconfarm"));
-            user.setIconServer(userElement.getAttribute("iconserver"));
+            user.setIconFarm(Integer.parseInt(userElement.getAttribute("iconfarm")));
+            user.setIconServer(Integer.parseInt(userElement.getAttribute("iconserver")));
             user.setRealName(userElement.getAttribute("realname"));
-            ul.add(user);
+            user.setAddedById(userElement.getAttribute("added_by"));
+            user.setPathAlias(userElement.getAttribute("path_alias"));
+            if(!userElement.getAttribute("x").equals("")){
+	            user.setX(Integer.parseInt(userElement.getAttribute("x")));
+	            user.setY(Integer.parseInt(userElement.getAttribute("y")));
+	            user.setW(Integer.parseInt(userElement.getAttribute("w")));
+	            user.setH(Integer.parseInt(userElement.getAttribute("h")));
+            }
         }
-        return ul;
+        return pt;
 
     }
 }

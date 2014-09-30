@@ -93,6 +93,10 @@ public class Photo {
 
     private Size videoOriginal;
 
+    private Size mobileMP4;
+    
+    private Size hdMP4;
+    
     private String id;
 
     private User owner;
@@ -132,6 +136,8 @@ public class Photo {
     private Permissions permissions;
 
     private Editability editability;
+    
+    private Editability publicEditability;
 
     private int comments;
 
@@ -168,11 +174,19 @@ public class Photo {
     private int originalWidth;
 
     private int originalHeight;
+    
+    private PhotoUrl photoUrl;
+    
+    private Usage usage;
+    
+    private boolean hasPeople;
 
     /**
      * Stats on views, comments and favorites. Only set on {@link StatsInterface#getPopularPhotos} call.
      */
     private Stats stats;
+
+	
 
     public Photo() {
     }
@@ -814,6 +828,22 @@ public class Photo {
         }
     }
 
+    public String getMobileMp4Url() {
+        if (mobileMP4 == null) {
+            return "";
+        } else {
+            return mobileMP4.getSource();
+        }
+    }
+
+    public String getHdMp4Url() {
+        if (hdMP4 == null) {
+            return "";
+        } else {
+            return hdMP4.getSource();
+        }
+    }
+
     /**
      * Get an image using the specified URL suffix.
      * 
@@ -928,7 +958,7 @@ public class Photo {
 
     private StringBuffer _getBaseImageUrl() {
         StringBuffer buffer = new StringBuffer();
-        buffer.append("http://farm");
+        buffer.append("https://farm");
         buffer.append(getFarm());
         buffer.append(".static.flickr.com/");
         buffer.append(getServer());
@@ -1035,6 +1065,12 @@ public class Photo {
             } else if (size.getLabel() == Size.VIDEO_ORIGINAL) {
                 videoOriginal = size;
             }
+            else if (size.getLabel() == Size.MOBILE_MP4) {
+            	mobileMP4 = size;
+            }
+            else if (size.getLabel() == Size.HD_MP4) {
+            	hdMP4 = size;
+            }
         }
     }
 
@@ -1099,6 +1135,34 @@ public class Photo {
     }
 
     /**
+   	 * @return the mobileMP4
+   	 */
+   	public Size getMobileMp4() {
+   		return mobileMP4;
+   	}
+
+   	/**
+   	 * @param mobileMP4 the mobileMP4 to set
+   	 */
+   	public void setMobileMp4(Size mobileMP4) {
+   		this.mobileMP4 = mobileMP4;
+   	}
+
+   	/**
+   	 * @return the hdMP4
+   	 */
+   	public Size getHdMp4() {
+   		return hdMP4;
+   	}
+
+   	/**
+   	 * @param hdMP4 the hdMP4 to set
+   	 */
+   	public void setHdMp4(Size hdMP4) {
+   		this.hdMP4 = hdMP4;
+   	}
+
+    /**
      * @return the pathAlias
      */
     public String getPathAlias() {
@@ -1149,4 +1213,40 @@ public class Photo {
     private boolean areEqual(Object x, Object y) {
         return x == null ? y == null : x.equals(y);
     }
+    
+    public PhotoUrl getPhotoUrl() {
+		return photoUrl;
+	}
+
+	public void setPhotoUrl(PhotoUrl photoUrl) {
+		this.photoUrl = photoUrl;
+		
+	}
+	
+	public Usage getUsage() {
+		return usage;
+	}
+
+	public void setUsage(Usage usage) {
+		this.usage = usage;
+		
+	}
+
+	public Editability getPublicEditability() {
+		return publicEditability;
+	}
+
+	public void setPublicEditability(Editability publicEditability) {
+		this.publicEditability = publicEditability;
+	}
+
+	public boolean isHasPeople() {
+		return hasPeople;
+	}
+
+	public void setIsHasPeople(boolean hasPeople) {
+		this.hasPeople = hasPeople;
+	}
+
+	
 }

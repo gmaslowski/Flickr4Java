@@ -66,13 +66,23 @@ public class PhotosInterfaceTest extends Flickr4JavaTest {
     public void testAddAndRemoveTags() throws FlickrException {
         PhotosInterface iface = flickr.getPhotosInterface();
         String photoId = testProperties.getPhotoId();
+        Photo photo = iface.getInfo(photoId, null);
+
+        // Find number of existing tags
+        int preCount = photo.getTags().size();
+        int postCount = preCount + 1;
+
+        // Add a tag
         String[] tagsToAdd = { "test" };
         iface.addTags(photoId, tagsToAdd);
-        Photo photo = iface.getInfo(photoId, null);
+
+        // Check that it was added
+        photo = iface.getInfo(photoId, null);
         Collection<Tag> tags = photo.getTags();
         assertNotNull(tags);
-        assertEquals(4, tags.size());
+        assertEquals(postCount, tags.size());
 
+        // Get the added tag's ID
         String tagId = null;
         for (Tag tag : tags) {
             if (tag.getValue().equals("test")) {
@@ -81,11 +91,12 @@ public class PhotosInterfaceTest extends Flickr4JavaTest {
             }
         }
 
+        // Remove and check that it was removed
         iface.removeTag(tagId);
         photo = iface.getInfo(photoId, null);
         tags = photo.getTags();
         assertNotNull(tags);
-        assertEquals(3, tags.size());
+        assertEquals(preCount, tags.size());
     }
 
     @Test
@@ -110,7 +121,7 @@ public class PhotosInterfaceTest extends Flickr4JavaTest {
 
         User owner = photo.getOwner();
         assertEquals(testProperties.getNsid(), owner.getId());
-        assertEquals(testProperties.getDisplayname(), owner.getUsername());
+        assertEquals(testProperties.getUsername(), owner.getUsername());
 
         List<Tag> tags = (List<Tag>) photo.getTags();
         assertEquals("green", (tags.get(0)).getValue());
@@ -325,7 +336,7 @@ public class PhotosInterfaceTest extends Flickr4JavaTest {
         Photo photo = iface.getInfo(photoId, null);
         BufferedImage image = iface.getImage(photo, Size.THUMB);
         assertNotNull(image);
-        assertEquals(67, image.getWidth());
+        assertTrue(67 == image.getWidth() || 68 == image.getWidth());
         assertEquals(100, image.getHeight());
         ImageIO.write(image, "jpg", thumbnailFile);
     }
@@ -360,30 +371,6 @@ public class PhotosInterfaceTest extends Flickr4JavaTest {
         String photoId = testProperties.getPhotoId();
         Photo photo = iface.getInfo(photoId, null);
         BufferedImage image = iface.getImage(photo, Size.LARGE);
-        assertNotNull(image);
-        assertNotNull(image.getWidth());
-        assertNotNull(image.getHeight());
-        ImageIO.write(image, "jpg", largeFile);
-    }
-
-    @Test
-    public void testGetLarge1600Image() throws FlickrException, IOException {
-        PhotosInterface iface = flickr.getPhotosInterface();
-        String photoId = testProperties.getPhotoId();
-        Photo photo = iface.getInfo(photoId, null);
-        BufferedImage image = iface.getImage(photo, Size.LARGE_1600);
-        assertNotNull(image);
-        assertNotNull(image.getWidth());
-        assertNotNull(image.getHeight());
-        ImageIO.write(image, "jpg", largeFile);
-    }
-
-    @Test
-    public void testGetLarge2048Image() throws FlickrException, IOException {
-        PhotosInterface iface = flickr.getPhotosInterface();
-        String photoId = testProperties.getPhotoId();
-        Photo photo = iface.getInfo(photoId, null);
-        BufferedImage image = iface.getImage(photo, Size.LARGE_2048);
         assertNotNull(image);
         assertNotNull(image.getWidth());
         assertNotNull(image.getHeight());
@@ -517,19 +504,19 @@ public class PhotosInterfaceTest extends Flickr4JavaTest {
         p.setOriginalSecret("osecret");
         p.setFarm("1");
 
-        assertEquals("http://farm1.static.flickr.com/server/id_secret_m.jpg", p.getSmallUrl());
-        assertEquals("http://farm1.static.flickr.com/server/id_secret_s.jpg", p.getSmallSquareUrl());
-        assertEquals("http://farm1.static.flickr.com/server/id_secret_t.jpg", p.getThumbnailUrl());
-        assertEquals("http://farm1.static.flickr.com/server/id_secret.jpg", p.getMediumUrl());
-        assertEquals("http://farm1.static.flickr.com/server/id_secret_b.jpg", p.getLargeUrl());
-        assertEquals("http://farm1.static.flickr.com/server/id_secret_q.jpg", p.getSquareLargeUrl());
-        assertEquals("http://farm1.static.flickr.com/server/id_secret_n.jpg", p.getSmall320Url());
-        assertEquals("http://farm1.static.flickr.com/server/id_secret_z.jpg", p.getMedium640Url());
-        assertEquals("http://farm1.static.flickr.com/server/id_secret_c.jpg", p.getMedium800Url());
-        assertEquals("http://farm1.static.flickr.com/server/id_secret_h.jpg", p.getLarge1600Url());
-        assertEquals("http://farm1.static.flickr.com/server/id_secret_k.jpg", p.getLarge2048Url());
+        assertEquals("https://farm1.static.flickr.com/server/id_secret_m.jpg", p.getSmallUrl());
+        assertEquals("https://farm1.static.flickr.com/server/id_secret_s.jpg", p.getSmallSquareUrl());
+        assertEquals("https://farm1.static.flickr.com/server/id_secret_t.jpg", p.getThumbnailUrl());
+        assertEquals("https://farm1.static.flickr.com/server/id_secret.jpg", p.getMediumUrl());
+        assertEquals("https://farm1.static.flickr.com/server/id_secret_b.jpg", p.getLargeUrl());
+        assertEquals("https://farm1.static.flickr.com/server/id_secret_q.jpg", p.getSquareLargeUrl());
+        assertEquals("https://farm1.static.flickr.com/server/id_secret_n.jpg", p.getSmall320Url());
+        assertEquals("https://farm1.static.flickr.com/server/id_secret_z.jpg", p.getMedium640Url());
+        assertEquals("https://farm1.static.flickr.com/server/id_secret_c.jpg", p.getMedium800Url());
+        assertEquals("https://farm1.static.flickr.com/server/id_secret_h.jpg", p.getLarge1600Url());
+        assertEquals("https://farm1.static.flickr.com/server/id_secret_k.jpg", p.getLarge2048Url());
         try {
-            assertEquals("http://farm1.static.flickr.com/server/id_osecret_o.jpg", p.getOriginalUrl());
+            assertEquals("https://farm1.static.flickr.com/server/id_osecret_o.jpg", p.getOriginalUrl());
         } catch (FlickrException ex) {
         }
         // setSizes() to override the generated URLs.
